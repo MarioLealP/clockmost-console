@@ -1,3 +1,4 @@
+import { Apps } from "@/components/Apps";
 import { Freshness } from "@/components/Freshness";
 import { Panel, Rows } from "@/components/Panel";
 import { Slab } from "@/components/Slab";
@@ -41,101 +42,105 @@ export function App() {
       </header>
       <div className="ef-rule--tri" style={{ height: 2 }} />
 
-      {error && !data ? (
-        <p className="ef-mono mt-8 text-sm text-magenta">
-          /api/infra unreachable — {error.message}
-        </p>
-      ) : loading || !snap ? (
-        <p className="ef-mono mt-8 text-sm text-ink-3">reading snapshot…</p>
-      ) : (
-        <main className="mt-8 flex flex-col gap-8">
+      <main className="mt-8 flex flex-col gap-8">
+        <Apps />
+
+        {snap ? (
           <Slab
             kicker="// SYSTEM"
             headline={HEADLINE[snap.status]}
             detail={summary(snap)}
             watermark="CLOCKMOST"
           />
+        ) : error ? (
+          <p className="ef-mono text-sm text-magenta">/api/infra unreachable — {error.message}</p>
+        ) : loading ? (
+          <p className="ef-mono text-sm text-ink-3">reading snapshot…</p>
+        ) : null}
 
-          <div className="grid gap-3 lg:grid-cols-2">
-            <Switches />
+        <div className="grid gap-3 lg:grid-cols-2">
+          <Switches />
 
-            <Panel
-              idx="SEC.01"
-              title="Deploy"
-              note={snap.deploy.rollback_recent ? "rolled back" : undefined}
-            >
-              <div className="ef-statrow">
-                <span className="ef-statrow__k">commit</span>
-                <span className="ef-statrow__v">{snap.deploy.commit.split(" ")[0] || "—"}</span>
-              </div>
-              <p className="ef-mono text-xs text-ink-2">{snap.deploy.last || "—"}</p>
-            </Panel>
+          {snap ? (
+            <>
+              <Panel
+                idx="SEC.02"
+                title="Deploy"
+                note={snap.deploy.rollback_recent ? "rolled back" : undefined}
+              >
+                <div className="ef-statrow">
+                  <span className="ef-statrow__k">commit</span>
+                  <span className="ef-statrow__v">{snap.deploy.commit.split(" ")[0] || "—"}</span>
+                </div>
+                <p className="ef-mono text-xs text-ink-2">{snap.deploy.last || "—"}</p>
+              </Panel>
 
-            <Panel
-              idx="SEC.02"
-              title="Containers"
-              note={`${snap.containers.up}/${snap.containers.total}`}
-            >
-              <Rows
-                items={[
-                  ...snap.containers.down.map((c) => `${c} — down`),
-                  ...snap.containers.unhealthy.map((c) => `${c} — unhealthy`),
-                ]}
-                tone="crit"
-                empty="all green"
-              />
-            </Panel>
+              <Panel
+                idx="SEC.03"
+                title="Containers"
+                note={`${snap.containers.up}/${snap.containers.total}`}
+              >
+                <Rows
+                  items={[
+                    ...snap.containers.down.map((c) => `${c} — down`),
+                    ...snap.containers.unhealthy.map((c) => `${c} — unhealthy`),
+                  ]}
+                  tone="crit"
+                  empty="all green"
+                />
+              </Panel>
 
-            <Panel idx="SEC.03" title="Disk">
-              <div className="flex items-center gap-6">
-                <StatusGauge value={snap.disk.root} label="root" unit="%" />
-                <StatusGauge value={snap.disk.home} label="home" unit="%" />
-              </div>
-            </Panel>
+              <Panel idx="SEC.04" title="Disk">
+                <div className="flex items-center gap-6">
+                  <StatusGauge value={snap.disk.root} label="root" unit="%" />
+                  <StatusGauge value={snap.disk.home} label="home" unit="%" />
+                </div>
+              </Panel>
 
-            <Panel idx="SEC.04" title="Alerts" note={`Zabbix · ${snap.alerts.n}`}>
-              <Rows
-                items={snap.alerts.list.map((a) => `[${ZBX_SEVERITY[a.s] ?? a.s}] ${a.n}`)}
-                tone={severityTone(snap.alerts.max_sev)}
-                empty="no problems"
-              />
-            </Panel>
+              <Panel idx="SEC.05" title="Alerts" note={`Zabbix · ${snap.alerts.n}`}>
+                <Rows
+                  items={snap.alerts.list.map((a) => `[${ZBX_SEVERITY[a.s] ?? a.s}] ${a.n}`)}
+                  tone={severityTone(snap.alerts.max_sev)}
+                  empty="no problems"
+                />
+              </Panel>
 
-            <Panel idx="SEC.05" title="Updates" note={`Renovate · ${snap.updates.n}`}>
-              <Rows
-                items={snap.updates.list.map((p) => `#${p.n} ${p.t}`)}
-                tone="warn"
-                empty="none pending"
-              />
-            </Panel>
+              <Panel idx="SEC.06" title="Updates" note={`Renovate · ${snap.updates.n}`}>
+                <Rows
+                  items={snap.updates.list.map((p) => `#${p.n} ${p.t}`)}
+                  tone="warn"
+                  empty="none pending"
+                />
+              </Panel>
 
-            <Panel idx="SEC.06" title="Notifications" note="ntfy · clockmost">
-              {snap.notify.list.length === 0 ? (
-                <p className="ef-mono text-xs text-ink-3">quiet</p>
-              ) : (
-                <ul className="flex flex-col gap-2">
-                  {snap.notify.list.map((n) => (
-                    <li key={`${n.t}:${n.m}`} className="flex flex-col">
-                      <span
-                        className={`ef-mono text-xs ${n.p >= 4 ? "text-magenta" : n.p >= 3 ? "text-ink" : "text-ink-3"}`}
-                      >
-                        {n.ti}
-                      </span>
-                      <span className="ef-mono text-[0.6875rem] text-ink-3">{n.m}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Panel>
-          </div>
+              <Panel idx="SEC.07" title="Notifications" note="ntfy · clockmost">
+                {snap.notify.list.length === 0 ? (
+                  <p className="ef-mono text-xs text-ink-3">quiet</p>
+                ) : (
+                  <ul className="flex flex-col gap-2">
+                    {snap.notify.list.map((n) => (
+                      <li key={`${n.t}:${n.m}`} className="flex flex-col">
+                        <span
+                          className={`ef-mono text-xs ${n.p >= 4 ? "text-magenta" : n.p >= 3 ? "text-ink" : "text-ink-3"}`}
+                        >
+                          {n.ti}
+                        </span>
+                        <span className="ef-mono text-[0.6875rem] text-ink-3">{n.m}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Panel>
 
-          {snap.units_failed.length > 0 ? (
-            <Panel idx="SEC.07" title="Failed units">
-              <Rows items={snap.units_failed} tone="crit" empty="" />
-            </Panel>
+              {snap.units_failed.length > 0 ? (
+                <Panel idx="SEC.08" title="Failed units">
+                  <Rows items={snap.units_failed} tone="crit" empty="" />
+                </Panel>
+              ) : null}
+            </>
           ) : null}
-        </main>
-      )}
+        </div>
+      </main>
     </div>
   );
 }

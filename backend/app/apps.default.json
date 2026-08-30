@@ -1,0 +1,24 @@
+{
+  "apps": [
+    { "name": "Immich", "url": "https://immich.clockmost.com", "group": "apps" },
+    { "name": "Gitea", "url": "https://git.clockmost.com", "group": "apps" },
+    { "name": "Arcane", "url": "https://arcane.clockmost.com", "group": "apps" },
+    { "name": "Filebrowser", "url": "https://filebrowser.clockmost.com", "group": "apps" },
+    { "name": "Home Assistant", "url": "https://ha.clockmost.com", "group": "apps" },
+
+    { "name": "twitch-mario", "url": "https://twitch-mario.clockmost.com", "group": "streams" },
+    { "name": "twitch-kuri", "url": "https://twitch-kuri.clockmost.com", "group": "streams" },
+    { "name": "twitch-andre", "url": "https://twitch-andre.clockmost.com", "group": "streams" },
+    { "name": "twitch-robin", "url": "https://twitch-robin.clockmost.com", "group": "streams" },
+    { "name": "twitch-mira", "url": "https://twitch-mira.clockmost.com", "group": "streams" },
+
+    { "name": "Zabbix", "url": "https://zabbix.clockmost.com", "group": "ops" },
+    { "name": "Logs", "url": "https://logs.clockmost.com", "group": "ops" },
+    { "name": "Dozzle", "url": "https://dozzle.clockmost.com", "group": "ops" },
+    { "name": "ntfy", "url": "https://ntfy.clockmost.com", "group": "ops" },
+    { "name": "Pi-hole", "url": "https://pihole.clockmost.com/admin/", "group": "ops" },
+    { "name": "Speedtest", "url": "https://speedtest-tracker.clockmost.com", "group": "ops" },
+    { "name": "WireGuard", "url": "https://wg-easy.clockmost.com", "group": "ops" },
+    { "name": "Cockpit", "url": "https://cockpit.clockmost.com", "group": "ops" }
+  ]
+}

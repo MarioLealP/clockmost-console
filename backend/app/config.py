@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     # the host timer drops the infra snapshot here (bind-mounted read-only)
     state_file: Path = Path("/data/state.json")
 
+    # launcher list override — falls back to app/apps.default.json when absent
+    apps_file: Path = Path("/data/apps.json")
+
     # sqlite by default; point at postgres via CM_DATABASE_URL to scale out
     database_url: str = "sqlite+aiosqlite:////data/console.db"
 

@@ -36,13 +36,3 @@ class Snapshot(SQLModel, table=True):
     alerts_max_sev: int = 0
 
     raw: JsonDict = Field(default_factory=dict, sa_column=Column(JSON))
-
-
-class UserPref(SQLModel, table=True):
-    """Per-Authentik-user UI state (panel order, collapsed sections, favourites)."""
-
-    __tablename__ = "user_pref"
-
-    username: str = Field(primary_key=True)
-    prefs: JsonDict = Field(default_factory=dict, sa_column=Column(JSON))
-    updated_at: datetime = Field(default_factory=_now)

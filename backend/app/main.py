@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
 from app.db import dispose_engine
-from app.routers import ha, health, infra, prefs
+from app.routers import apps, ha, health, infra
 from app.services.poller import lifespan_poller
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -29,7 +29,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(infra.router)
-    app.include_router(prefs.router)
+    app.include_router(apps.router)
     app.include_router(ha.router)
 
     index = settings.dist_dir / "index.html"

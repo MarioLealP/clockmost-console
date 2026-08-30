@@ -72,10 +72,9 @@ class InfraOut(BaseModel):
     history: list[HistoryPoint]
 
 
-class PrefsIn(BaseModel):
-    prefs: dict[str, Any]
+class AppLink(BaseModel):
+    """A user-facing app for the launcher (GET /api/apps)."""
 
-
-class PrefsOut(BaseModel):
-    username: str
-    prefs: dict[str, Any]
+    name: str
+    url: str
+    group: str = "apps"

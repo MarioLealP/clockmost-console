@@ -9,7 +9,7 @@ export function Switches() {
   }
 
   return (
-    <Panel idx="SEC.00" title="Switches" note="home assistant">
+    <Panel idx="SEC.01" title="Switches" note="home assistant">
       {loading ? (
         <p className="ef-mono text-xs text-ink-3">…</p>
       ) : switches.length === 0 ? (
