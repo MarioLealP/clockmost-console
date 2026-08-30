@@ -1,0 +1,50 @@
+[project]
+name = "clockmost-console-api"
+version = "0.1.0"
+description = "BFF for the clockmost dashboard — relays the infra snapshot + Home Assistant, keeps history."
+requires-python = ">=3.13"
+dependencies = [
+  "fastapi>=0.141,<0.142",
+  "uvicorn[standard]>=0.52,<0.53",
+  "sqlmodel>=0.0.42,<0.1",
+  "alembic>=1.19,<2",
+  "aiosqlite>=0.22,<0.23",
+  "pydantic-settings>=2.15,<3",
+  "httpx>=0.28,<0.29",
+]
+
+[dependency-groups]
+dev = ["ruff>=0.16,<0.17", "mypy>=2.3,<3", "pytest>=9,<10", "pytest-asyncio>=1.4,<2"]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "ASYNC", "PL", "PTH", "TID"]
+# PLC0415: deferred imports are a deliberate FastAPI-app / test-fixture pattern here
+ignore = ["PLR0913", "PLC0415"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["PLR2004", "S101", "ASYNC230", "ASYNC240"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["app", "tests"]
+[[tool.mypy.overrides]]
+module = ["sqlmodel.*", "alembic.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]

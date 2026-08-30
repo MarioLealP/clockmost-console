@@ -10,32 +10,45 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  smell:
+  web:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      # version comes from package.json "packageManager"
       - uses: pnpm/action-setup@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
-
       - run: pnpm install --frozen-lockfile
-
       - name: format (oxfmt)
         run: pnpm fmt:check
-
       - name: lint (oxlint)
         run: pnpm lint
-
       - name: types (tsc)
         run: pnpm typecheck
-
       - name: test (vitest)
         run: pnpm test
-
       - name: build (vite)
         run: pnpm build
+
+  api:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: lint (ruff)
+        run: uv run ruff check .
+      - name: format (ruff)
+        run: uv run ruff format --check .
+      - name: types (mypy)
+        run: uv run mypy
+      - name: migrations match the models
+        run: uv run alembic upgrade head && uv run alembic check
+      - name: test (pytest)
+        run: uv run pytest -q

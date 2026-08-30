@@ -1,42 +1,31 @@
-import { useState } from "react";
-
-import { DataStrip } from "@/components/DataStrip";
-import { ServiceCard, type Health } from "@/components/ServiceCard";
+import { Freshness } from "@/components/Freshness";
+import { Panel, Rows } from "@/components/Panel";
 import { Slab } from "@/components/Slab";
 import { StatusGauge } from "@/components/StatusGauge";
-import { TaskRow } from "@/components/TaskRow";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { type InfraSnapshot, severityTone, type Status, ZBX_SEVERITY } from "@/lib/infra";
+import { useInfra } from "@/lib/useInfra";
 import { useTheme } from "@/lib/useTheme";
 
-interface Service {
-  name: string;
-  meta: string;
-  health: Health;
-  detail: string;
+const HEADLINE: Record<Status, string> = {
+  ok: "Nominal",
+  warn: "Degraded",
+  crit: "Critical",
+  unknown: "No signal",
+};
+
+function summary(s: InfraSnapshot): string {
+  const bits = [`${s.containers.up}/${s.containers.total} up`];
+  if (s.alerts.n) bits.push(`${s.alerts.n} alert${s.alerts.n === 1 ? "" : "s"}`);
+  if (s.updates.n) bits.push(`${s.updates.n} update${s.updates.n === 1 ? "" : "s"}`);
+  if (s.units_failed.length) bits.push(`${s.units_failed.length} unit failed`);
+  return bits.join(" · ");
 }
-
-const SERVICES: readonly Service[] = [
-  { name: "caddy", meta: "edge // 80 · 443", health: "ok", detail: "wildcard TLS · 15 routes" },
-  { name: "authentik", meta: "auth // oidc", health: "ok", detail: "server + worker + pg16" },
-  { name: "immich", meta: "photos // 2333", health: "ok", detail: "ml online · 41k assets" },
-  { name: "factorio", meta: "game // 34197/udp", health: "warn", detail: "autosave 28h stale" },
-  { name: "zabbix", meta: "monitor // 10051", health: "ok", detail: "0 problems" },
-  { name: "gitea-runner", meta: "ci // act", health: "crit", detail: "runner offline" },
-];
-
-const STRIP: readonly string[] = [
-  "NODE clockmost",
-  "PWR 82.4%",
-  "STACKS 6",
-  "BACKUP full · rc=0",
-  "RESTIC 44 snap · clean",
-  "DEPLOY last-ok 3m",
-  "SECTOR CLEAR",
-];
 
 export function App() {
   const { surface, toggle } = useTheme();
-  const [checkStarted, setCheckStarted] = useState(false);
+  const { data, error, loading } = useInfra();
+  const snap = data?.snapshot;
 
   return (
     <div className="mx-auto max-w-5xl px-6 pt-10 pb-16">
@@ -46,75 +35,104 @@ export function App() {
         </span>
         <span className="ef-label hidden sm:block">{"// console"}</span>
         <span className="flex-1" />
-        <span className="ef-pill" data-state="ok">
-          <span className="ef-diamond" />
-          nominal
-        </span>
+        {data ? <Freshness ageSeconds={data.age_seconds} stale={data.stale} /> : null}
         <ThemeToggle surface={surface} onToggle={toggle} />
       </header>
       <div className="ef-rule--tri" style={{ height: 2 }} />
 
-      <main className="mt-8 flex flex-col gap-8">
-        <Slab
-          kicker="// SYSTEM"
-          headline="Nominal"
-          detail="6 stacks · 1 alert"
-          watermark="CLOCKMOST"
-        />
+      {error && !data ? (
+        <p className="ef-mono mt-8 text-sm text-magenta">
+          /api/infra unreachable — {error.message}
+        </p>
+      ) : loading || !snap ? (
+        <p className="ef-mono mt-8 text-sm text-ink-3">reading snapshot…</p>
+      ) : (
+        <main className="mt-8 flex flex-col gap-8">
+          <Slab
+            kicker="// SYSTEM"
+            headline={HEADLINE[snap.status]}
+            detail={summary(snap)}
+            watermark="CLOCKMOST"
+          />
 
-        <section>
-          <div className="ef-sec-head mb-5">
-            <span className="ef-idx">SEC.01</span>
-            <h2>Services</h2>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {SERVICES.map((service) => (
-              <ServiceCard key={service.name} {...service} />
-            ))}
-          </div>
-        </section>
+          <div className="grid gap-3 lg:grid-cols-2">
+            <Panel
+              idx="SEC.01"
+              title="Deploy"
+              note={snap.deploy.rollback_recent ? "rolled back" : undefined}
+            >
+              <div className="ef-statrow">
+                <span className="ef-statrow__k">commit</span>
+                <span className="ef-statrow__v">{snap.deploy.commit.split(" ")[0] || "—"}</span>
+              </div>
+              <p className="ef-mono text-xs text-ink-2">{snap.deploy.last || "—"}</p>
+            </Panel>
 
-        <section>
-          <div className="ef-sec-head mb-5">
-            <span className="ef-idx">SEC.02</span>
-            <h2>Readings</h2>
-          </div>
-          <div className="flex flex-wrap items-center gap-6">
-            <StatusGauge value={67} label="pwr" />
-            <StatusGauge value={9} label="disk" unit="%" />
-            <StatusGauge value={42} label="cpu" />
-          </div>
-        </section>
-
-        <section>
-          <div className="ef-sec-head mb-5">
-            <span className="ef-idx">SEC.03</span>
-            <h2>Queue</h2>
-          </div>
-          <div className="flex flex-col gap-1">
-            {checkStarted ? (
-              <TaskRow title="Weekly restic check" state="active" progress={0.15} meta="running" />
-            ) : (
-              <TaskRow
-                title="Weekly restic check"
-                state="ready"
-                onRun={() => {
-                  setCheckStarted(true);
-                }}
+            <Panel
+              idx="SEC.02"
+              title="Containers"
+              note={`${snap.containers.up}/${snap.containers.total}`}
+            >
+              <Rows
+                items={[
+                  ...snap.containers.down.map((c) => `${c} — down`),
+                  ...snap.containers.unhealthy.map((c) => `${c} — unhealthy`),
+                ]}
+                tone="crit"
+                empty="all green"
               />
-            )}
-            <TaskRow
-              title="Renovate PR sweep — 3 / 6"
-              state="active"
-              progress={0.5}
-              meta="running"
-            />
-            <TaskRow title="Nightly full backup — done (rc=0)" state="done" meta="04:05" />
-          </div>
-        </section>
-      </main>
+            </Panel>
 
-      <DataStrip items={STRIP} />
+            <Panel idx="SEC.03" title="Disk">
+              <div className="flex items-center gap-6">
+                <StatusGauge value={snap.disk.root} label="root" unit="%" />
+                <StatusGauge value={snap.disk.home} label="home" unit="%" />
+              </div>
+            </Panel>
+
+            <Panel idx="SEC.04" title="Alerts" note={`Zabbix · ${snap.alerts.n}`}>
+              <Rows
+                items={snap.alerts.list.map((a) => `[${ZBX_SEVERITY[a.s] ?? a.s}] ${a.n}`)}
+                tone={severityTone(snap.alerts.max_sev)}
+                empty="no problems"
+              />
+            </Panel>
+
+            <Panel idx="SEC.05" title="Updates" note={`Renovate · ${snap.updates.n}`}>
+              <Rows
+                items={snap.updates.list.map((p) => `#${p.n} ${p.t}`)}
+                tone="warn"
+                empty="none pending"
+              />
+            </Panel>
+
+            <Panel idx="SEC.06" title="Notifications" note="ntfy · clockmost">
+              {snap.notify.list.length === 0 ? (
+                <p className="ef-mono text-xs text-ink-3">quiet</p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {snap.notify.list.map((n) => (
+                    <li key={`${n.t}:${n.m}`} className="flex flex-col">
+                      <span
+                        className={`ef-mono text-xs ${n.p >= 4 ? "text-magenta" : n.p >= 3 ? "text-ink" : "text-ink-3"}`}
+                      >
+                        {n.ti}
+                      </span>
+                      <span className="ef-mono text-[0.6875rem] text-ink-3">{n.m}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
+          </div>
+
+          {snap.units_failed.length > 0 ? (
+            <Panel idx="SEC.07" title="Failed units">
+              <Rows items={snap.units_failed} tone="crit" empty="" />
+            </Panel>
+          ) : null}
+        </main>
+      )}
     </div>
   );
 }

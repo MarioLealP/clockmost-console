@@ -1,55 +1,65 @@
 # clockmost-console
 
-The clockmost dashboard. Forked from `clockmost-frontend-template`; the demo
-console screen is the starting point and grows into the real thing.
+The clockmost dashboard. `https://console.clockmost.com` — VPN-only, behind
+Authentik forward-auth.
 
-Lives at **https://console.clockmost.com** — VPN-only, behind Authentik
-forward-auth.
+## Shape
 
-## Stack
+```
+ host timer (~20s) ─ clockmost-console-state ─▶ /var/lib/clockmost-console/state.json
+                                                     │ bind-mounted ro
+ clockmost-console container                         │
+   FastAPI BFF  (backend/)  ◀──────────────────── reads it, keeps Snapshot history
+     ├─ GET /api/infra          latest snapshot + 6h history
+     ├─ GET /api/infra/history  ?hours=
+     ├─ GET/PUT /api/prefs      per-Authentik-user UI state
+     ├─ GET /api/health
+     └─ serves the React build (dist/) as the SPA
+   React 19 + Vite 8 + Tailwind v4  (src/)  — the Endfield design system
+```
 
-React 19 · Vite 8 · TypeScript 7 · Tailwind v4 (mapped onto the Endfield
-`--ef-*` tokens) · oxlint + oxfmt (no ESLint, no Prettier) · Vitest.
+- **frontend** — `src/`, `package.json`. React + Vite + Tailwind v4 on
+  `endfield.css`, linted by oxlint, formatted by oxfmt.
+- **backend** — `backend/`, `pyproject.toml` (uv). FastAPI + SQLModel + Alembic,
+  SQLite (`sqlite+aiosqlite`, swap to Postgres via `CM_DATABASE_URL`). Linted +
+  formatted by **ruff**, typed by **mypy**.
 
-Same split as the template: `.ef-*` classes for components and motifs, Tailwind
-for layout and spacing; `src/styles/theme.css` bridges them. `src/styles/endfield.css`
-is vendored from `Benylin/endfield-design` — refresh with `pnpm sync:endfield`.
-
-## Commands
+## Dev
 
 ```sh
+# backend
+cd backend
+uv sync
+CM_STATE_FILE=/some/state.json uv run alembic upgrade head
+CM_STATE_FILE=/some/state.json uv run uvicorn app.main:app --reload --port 8787
+
+# frontend (separate shell) — /api is proxied to :8787
 pnpm install
-pnpm dev            # vite dev server
-pnpm check          # fmt:check · lint · typecheck · test  (what CI runs)
-pnpm build          # tsc --noEmit && vite build
+pnpm dev
 ```
+
+`pnpm check` runs the web gate (oxfmt / oxlint / tsc / vitest); `cd backend &&
+uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run
+pytest` runs the API gate. Both are the CI `web` / `api` jobs.
 
 ## Deploy
 
-The server build is an nginx-served static bundle.
+Built as one container (`Dockerfile`: node builds `dist/`, then a
+`python:3.13` runtime runs `alembic upgrade head` + uvicorn). Deployed as a
+compose stack in the infra repo at `clockmost-infra:projects/clockmost-console/`
+with this repo's tree vendored under `app/` (same as `caddy`).
 
-```sh
-docker build -t clockmost/clockmost-console:<version> .
-```
+The stack bind-mounts `/var/lib/clockmost-console` (holds `state.json` written by
+the host timer + `console.db`), and gets `CM_HA_*` from its sops `secrets.env`.
 
-The live deployment is a compose stack in the infra repo at
-`clockmost-infra:projects/clockmost-console/` — it vendors this app's source
-under `app/` and builds it there (`build: ./app`,
-`image: clockmost/clockmost-console:<version>`), the same pattern as
-`projects/caddy/`. To ship a new version:
+To ship: re-vendor into the infra repo, bump `image:` in
+`projects/clockmost-console/compose.yaml`, commit + push — `clockmost-deploy`
+builds and rolls it.
 
-1. land the change here, bump `<version>`;
-2. re-vendor into the infra repo: from a checkout,
-   `rsync -a --delete --exclude .git --exclude node_modules --exclude dist
-./ /home/clockmost-infra/projects/clockmost-console/app/`;
-3. bump the tag in `projects/clockmost-console/compose.yaml`;
-4. commit + push the infra repo — `clockmost-deploy` builds and rolls it.
+## Roadmap
 
-(A Gitea-Actions image build → registry → pinned-tag pipeline is the eventual
-replacement for step 2–3; it needs a `write:package` token added as an Actions
-secret.)
-
-## CI
-
-`.gitea/workflows/ci.yml` — one `smell` job: fmt → lint → typecheck → test →
-build. Gate `main` on it in Gitea → Settings → Branches.
+- **Phase 1** ✅ — BFF + infra panels off `clockmost-status`.
+- **Phase 2** — Home Assistant: `/api/ha/*` proxy + live WS, entity panels.
+  Needs an HA long-lived token in the stack secrets.
+- **Phase 3** — density pass, per-user layout (`/api/prefs`), history sparklines,
+  entity actions (toggle a light).

@@ -2,7 +2,7 @@
   "name": "clockmost-console",
   "version": "0.1.0",
   "private": true,
-  "description": "The clockmost dashboard, built on the Endfield design system (React + Vite + Tailwind v4).",
+  "description": "The clockmost dashboard — a React SPA + FastAPI BFF on the Endfield design system.",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -20,7 +20,8 @@
   },
   "dependencies": {
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "swr": "2.5.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.3.3",
