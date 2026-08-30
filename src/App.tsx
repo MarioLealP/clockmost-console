@@ -2,6 +2,7 @@ import { Freshness } from "@/components/Freshness";
 import { Panel, Rows } from "@/components/Panel";
 import { Slab } from "@/components/Slab";
 import { StatusGauge } from "@/components/StatusGauge";
+import { Switches } from "@/components/Switches";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { type InfraSnapshot, severityTone, type Status, ZBX_SEVERITY } from "@/lib/infra";
 import { useInfra } from "@/lib/useInfra";
@@ -56,6 +57,8 @@ export function App() {
           />
 
           <div className="grid gap-3 lg:grid-cols-2">
+            <Switches />
+
             <Panel
               idx="SEC.01"
               title="Deploy"

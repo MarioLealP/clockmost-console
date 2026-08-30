@@ -1,8 +1,11 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Annotated
 
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+CsvList = Annotated[list[str], NoDecode]
 
 
 class Settings(BaseSettings):
@@ -20,11 +23,25 @@ class Settings(BaseSettings):
     # how often the poller ingests a snapshot row
     poll_seconds: float = 20.0
 
-    # Home Assistant (phase 2) — empty disables the HA routes
+    # Home Assistant — empty `ha_url`/`ha_token` disables the HA routes
     ha_url: str = ""
     ha_token: str = Field(default="", repr=False)
+    # entity_ids to surface as toggles, in order. Empty = auto (switch.*/light.*
+    # minus the obvious device-config sub-entities). Comma-separated in the env.
+    ha_switches: CsvList = []
 
-    cors_origins: list[str] = []
+    cors_origins: CsvList = []
+
+    @field_validator("ha_switches", "cors_origins", mode="before")
+    @classmethod
+    def _split_csv(cls, v: object) -> object:
+        if isinstance(v, str):
+            return [s.strip() for s in v.split(",") if s.strip()]
+        return v
+
+    @property
+    def ha_enabled(self) -> bool:
+        return bool(self.ha_url and self.ha_token)
 
 
 @lru_cache
