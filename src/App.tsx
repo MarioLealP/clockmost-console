@@ -5,7 +5,7 @@ import { Freshness } from "@/components/Freshness";
 import { Panel, Rows } from "@/components/Panel";
 import { Slab } from "@/components/Slab";
 import { StatusGauge } from "@/components/StatusGauge";
-import { Switches } from "@/components/Switches";
+import { SwitchBar } from "@/components/SwitchBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { type InfraSnapshot, severityTone, type Status, ZBX_SEVERITY } from "@/lib/infra";
 import { useInfra } from "@/lib/useInfra";
@@ -18,12 +18,11 @@ const HEADLINE: Record<Status, string> = {
   unknown: "No signal",
 };
 
-const TABS = ["status", "launch", "home"] as const;
+const TABS = ["status", "launch"] as const;
 type Tab = (typeof TABS)[number];
 const TAB_LABEL: Record<Tab, string> = {
   status: "Status",
   launch: "Launch",
-  home: "Home",
 };
 
 function summary(s: InfraSnapshot): string {
@@ -159,6 +158,8 @@ export function App() {
       </header>
       <div className="ef-rule--tri" style={{ height: 2 }} />
 
+      <SwitchBar />
+
       <div className="ef-tabs mt-6" role="tablist">
         {TABS.map((t) => (
           <button
@@ -175,15 +176,7 @@ export function App() {
       </div>
 
       <main className="mt-8">
-        {tab === "status" ? (
-          <StatusView snap={snap} error={error} loading={loading} />
-        ) : tab === "launch" ? (
-          <Apps />
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <Switches />
-          </div>
-        )}
+        {tab === "status" ? <StatusView snap={snap} error={error} loading={loading} /> : <Apps />}
       </main>
     </div>
   );
