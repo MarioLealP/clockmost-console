@@ -1,0 +1,9 @@
+.git
+node_modules
+dist
+coverage
+.vite
+*.log
+.DS_Store
+.gitea
+README.md
