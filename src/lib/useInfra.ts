@@ -13,8 +13,8 @@ async function fetcher(url: string): Promise<InfraOut> {
 export function useInfra() {
   const { data, error, isLoading } = useSWR<InfraOut>("/api/infra", fetcher, {
     refreshInterval: 15_000,
-    keepPreviousData: true,
-    revalidateOnFocus: true,
+    revalidateOnFocus: false,
+    revalidateOnMount: true,
   });
 
   return {

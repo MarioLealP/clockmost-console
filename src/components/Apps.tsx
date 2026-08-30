@@ -17,7 +17,7 @@ export function Apps() {
 
   return (
     <Panel idx="SEC.00" title="Launch">
-      <div className="flex flex-col gap-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {groups.map((g) => (
           <div key={g}>
             <p className="ef-label mb-2">{GROUP_LABEL[g] ?? g}</p>

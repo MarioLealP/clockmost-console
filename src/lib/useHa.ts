@@ -15,7 +15,8 @@ async function fetcher(url: string): Promise<Result> {
 export function useHa() {
   const { data, mutate, isLoading } = useSWR<Result>("/api/ha/switches", fetcher, {
     refreshInterval: 10_000,
-    keepPreviousData: true,
+    revalidateOnFocus: false,
+    revalidateOnMount: true,
     shouldRetryOnError: false,
   });
 
